@@ -1,26 +1,28 @@
 from Message import Message
 
 
+
 class Node:
-    def __inti__ (self, node_id, simulator:Simulator, holder:Node = None, token:bool=False ):
+    def __init__ (self, node_id, simulator, holder:Node = None, token:bool=False ):
         self.simulator=simulator
         self.node_id=node_id
-        self.holder=holder
-        self.token=token
-        self.queue=[]
+        self.holder= None
+        self.queue=[] #pour la 2eme partie
 
-    def send_message(self, destination:Node, content:str):
-        message = Message(self, destination, content)
-        self.simulator.schedule_event()
-        destination.receive_message(message)
+    def send_message(self, destination_id:Node, content:str):
+        message = Message(self.node_id, destination_id, content)
+        #on le pass au simulateur
+        # Nota: schedule_event espera (sender, receiver, message)
+        self.simulator.schedule_event(self.node_id, destination_id, message)
+        
 
-    def receive_message(message:Message):
+    def handle_message(self,message:Message):
         if message.content == "REQUEST":
             pass
         if message.content == "TOKEN":
             pass
-
-    def handle_message():      
-        pass
+        
+        print(f"Time={self.simulator.current_time} | Node {self.node_id} received {message}")
+    
 
         
