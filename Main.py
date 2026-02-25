@@ -1,43 +1,37 @@
-from Channel import Channel
+from Simulator import Simulator
 from Node import Node
 from tree import Tree
-from Simulator import Simulator
 from Message import MessageType
-
-
-class Main:
-    def __init__(self):
-        self.tree = Tree()
-        self.channels = Channel()
-        self.nodes = Node(self.tree, self.channels)
 
 if __name__ == "__main__":
     sim = Simulator()
+    tree = Tree(sim)
 
-    n1 = Node(1, sim)
-    n2 = Node(2, sim)
+    nodes = {}
+    for i in range(1, 9):
+        n = Node(i, sim)
+        nodes[i] = n
+        tree.add_node(n)
 
-    sim.add_node(n1)
-    sim.add_node(n2)
+    tree.connect_parent_child(1, 2)
+    tree.connect_parent_child(1, 3)
+    tree.connect_parent_child(2, 4)
+    tree.connect_parent_child(3, 5)
+    tree.connect_parent_child(3, 6)
+    tree.connect_parent_child(3, 7)
+    tree.connect_parent_child(7, 8)
 
-    n1.send_message(MessageType.REQUEST, 2)
+    tree.init_holders_from_token(token_id=1)
 
-    nodes = [Node(1,sim), Node(2, sim), 
-                      Node(3, sim), Node(4, sim), 
-                      Node(5, sim), Node(6, sim), Node(7, sim), Node(8, sim)]
-    tree = Tree()
-    tree.addRoot(nodes[0])
-    tree.addLevel([nodes[1], nodes[2]])
-    tree.addLevel([nodes[3], nodes[4], nodes[5], nodes[6]])
-        
-    tree.addChannels(nodes[0], nodes[1])
-    tree.addChannels(nodes[0], nodes[2])
-    tree.addChannels(nodes[1], nodes[3])
-    tree.addChannels(nodes[2], nodes[4])
-    tree.addChannels(nodes[2], nodes[5])
-    tree.addChannels(nodes[2], nodes[6])
-    
-    tree.toString()
+    nodes[1].in_cs = True
+    print("Initial: token at Node 1 and it is in CS")
 
+    nodes[1].send_message(MessageType.RELEASE, 1, delay=1)
+
+    nodes[4].request_cs()
+    nodes[7].request_cs()
+    nodes[5].request_cs()
+
+    tree.toString([1, 2, 3, 4, 5, 7])
     sim.run()
-
+    tree.toString([1, 2, 3, 4, 5, 7])

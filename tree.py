@@ -1,144 +1,74 @@
-from Node import Node
-
 class Tree:
-    def __init__(self, nodes_levels=None):
-        self.nodes_levels = nodes_levels if nodes_levels else {}
-        self.channels = []
+    def __init__(self, simulator):
+        self.sim = simulator
+        self.nodes = {}
+        self.edges = []     #  arete (parent_id, child_id)
 
-    def addRoot(self, node):
-        self.nodes_levels[0] = [node]
-        node.token = True
+    def add_node(self, node):
+        # ajoute le node dans la structure arbre
+        self.nodes[node.id] = node
+        # enregistre aussi le node dans simulateur
+        self.sim.add_node(node)
 
-    def addLevel(self, nodes):
-        level = len(self.nodes_levels)
-        node_to_add = []
+    def connect_parent_child(self, parent_id, child_id):
+        # recupere les objets Node
+        p = self.nodes[parent_id]
+        c = self.nodes[child_id]
 
-        for node in nodes:
-            node_to_add.append(node)
+        # relation arbre
+        p.children.append(c)
+        c.parent = p
 
-        self.nodes_levels[level] = node_to_add
+        # relation reseau (voisins pour envoi de messages)
+        p.add_neighbor(child_id)
+        c.add_neighbor(parent_id)
 
-    def addChannels(self, node1, node2):
-        level1 = None
-        level2 = None
-        for level in self.nodes_levels:
-            if node1 in self.nodes_levels[level]:
-                level1 = level
-            if node2 in self.nodes_levels[level]:
-                level2 = level
-        if level1 != None and level2 != None:
-            if level2 == level1 + 1:
-                self.channels.append([node1, node2])
-            elif level2 == level1:
-                print("Error: Nodes are in the same level and can't be connected")
+        # memorise l arete
+        self.edges.append((parent_id, child_id))
+
+    def init_holders_from_token(self, token_id):
+        # Breadth-First Search pour orienter tous les holder vers le token initial
+        visited = {}
+        parent_in_bfs = {}
+
+        # initialisation Breadth-First Search à partir du node qui possede le token
+        q = [token_id]
+        visited[token_id] = True
+        parent_in_bfs[token_id] = None
+
+        # construction de la liste d’adjacence
+        adj = {}
+        for (a, b) in self.edges:
+            if a not in adj: adj[a] = []
+            if b not in adj: adj[b] = []
+            adj[a].append(b)
+            adj[b].append(a)
+
+        # parcours Breadth-First Search pour trouver les parents de chaque node dans le BFS
+        while len(q) > 0:
+            cur = q.pop(0)
+            for nxt in adj.get(cur, []):
+                if nxt not in visited:
+                    visited[nxt] = True
+                    parent_in_bfs[nxt] = cur
+                    q.append(nxt)
+
+        # initialisation des variables Raymond pour chaque node
+        for nid, node in self.nodes.items():
+            node.has_token = False
+            node.in_cs = False
+            node.asked = False
+            node.request_queue = []
+
+            if nid == token_id:
+                # le token holder pointe sur lui meme
+                node.holder = nid
+                node.has_token = True
             else:
-                print("Error: Nodes are not in adjacent levels")
-        else:
-            raise IndexError("Error: One or both nodes not found in the tree")
+                # le holder pointe vers le voisin qui rapproche du token
+                node.holder = parent_in_bfs[nid]
 
-    def findNodeWithToken(self):
-        for level in self.nodes_levels:
-            for node in self.nodes_levels[level]:
-                if node.token:
-                    return node
-            
-        raise ValueError("The token was not given yet")
-    
-    def _buildParentChildRelationships(self):
-        for channel in self.channels :
-            channel[0].children.append(channel[1])
-            channel[1].father = channel[0]
-    
-    def get_path_to_root(self, node):
-        path = []
-        current = node
-        while current is not None:
-            path.append(current)
-            current = current.father
-        return path
-    
-    # def get_common_ancestor(self, node1, node2):
-    #     pass
-                 
-    def raymond(self):
-        node_with_token = self.findNodeWithToken()
-        
-        # ============================================================
-        # ÉTAPE 1: Initialisation et préparation
-        # ============================================================
-        # TODO: Initialiser les variables locales pour tous les nœuds:
-        # - token: boolean (qui détient le jeton)
-        # - request_queue: liste des demandes en attente
-        # - father: le nœud parent dans l'arbre
-        # - was_asked: booléen indiquant si ce nœud a été demandé
-        
-        # TODO: Construire le graphe parent-enfant à partir de self.channels
-        self._buildParentChildRelationships()
-        
-        # ============================================================
-        # ÉTAPE 2: Demande de section critique
-        # ============================================================
-        # TODO: Implémenter une méthode request_critical_section(node)
-        # - Si le nœud a déjà le jeton → accès direct
-        # - Si le jeton est ailleurs:
-        #   * Ajouter à sa request_queue locale
-        #   * Envoyer une demande à son père (si pas déjà demandé)
-        
-        # ============================================================
-        # ÉTAPE 3: Transmission du jeton
-        # ============================================================
-        # TODO: Quand un nœud reçoit une demande:
-        # - Si le nœud n'a pas le jeton:
-        #   * Ajouter la demande à sa queue
-        #   * Marquer was_asked = True
-        #   * Transmettre la demande à son père
-        # - Si le nœud a le jeton:
-        #   * Ajouter à sa queue
-        #   * Transmettre le jeton au demandeur via le chemin
-        
-        # ============================================================
-        # ÉTAPE 4: Libération du jeton
-        # ============================================================
-        # TODO: Implémenter release_critical_section(node)
-        # - Quand un nœud sort de la section critique:
-        #   * Envoyer le jeton au premier nœud de sa request_queue
-        #   * Si was_asked = True: envoyer demande au père après
-        
-        # ============================================================
-        # ÉTAPE 5: Circulation du jeton dans l'arbre
-        # ============================================================
-        # TODO: Implémenter pass_token(from_node, to_node)
-        # - Suivre le chemin dans l'arbre jusqu'au destinataire
-        # - Mettre à jour la position du token
-        # - Notifier le destinataire
-        
-        print("Algorithme de Raymond initialisé")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    def toString(self):
-        print("Tree structure:")
-        for level in self.nodes_levels:
-            node_per_level = [node.id for node in self.nodes_levels[level]]
-            print(f"Level {level} : {node_per_level}")
-
-        print("Channels:")
-        for channel in self.channels:
-            print(f"{channel[0].id} <-> {channel[1].id}")
-
-    
+    def toString(self, ids):
+        # affiche l etat de certain nodes
+        for nid in ids:
+            self.nodes[nid].toString()
