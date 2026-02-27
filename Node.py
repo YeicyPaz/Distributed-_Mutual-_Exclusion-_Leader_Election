@@ -2,7 +2,7 @@ from Message import Message, MessageType
 
 class Node:
     def __init__(self, node_id, simulator):
-        self.id = node_id
+        self.node_id = node_id
         self.simulator = simulator
         self.neighbors = {}
         self.parent = None
@@ -17,17 +17,17 @@ class Node:
         self.neighbors[neighbor_id] = channel
 
     def send_message(self, msg_type, receiver_id, requester=None, delay=None):
-        m = Message(msg_type, self.id, receiver_id, requester=requester)
-        self.simulator.schedule_message(m, delay=delay)
+        m = Message(msg_type, self.node_id, receiver_id, requester=requester)
+        self.simulator.schedule_event(self.node_id, receiver_id, m, delay=delay)
 
     def request_cs(self):
-        print("t=", self.simulator.time,", Node", self.id, "demande la section critique")
-        if self.id not in self.request_queue:
-            self.request_queue.append(self.id)
+        print("t=", self.simulator.current_time,", Node", self.node_id, "demande la section critique")
+        if self.node_id not in self.request_queue:
+            self.request_queue.append(self.node_id)
 
         if (not self.has_token) and (not self.asked):
             self.asked = True
-            self.send_message(MessageType.REQUEST, self.holder, requester=self.id)
+            self.send_message(MessageType.REQUEST, self.holder, requester=self.node_id, delay=1)
 
         if self.has_token and (not self.in_cs):
             self.give_token_if_possible()
@@ -41,24 +41,24 @@ class Node:
         nxt = self.request_queue.pop(0)
         self.asked = False
 
-        if nxt == self.id:
+        if nxt == self.node_id:
             self.in_cs = True
-            print("t=", self.simulator.time,", Node", self.id, "entre en section critique")
-            self.send_message(MessageType.RELEASE, self.id, delay=2)
+            print("t=", self.simulator.current_time,", Node", self.node_id, "entre en section critique")
+            self.send_message(MessageType.RELEASE, self.node_id, delay=2)
             return
 
         self.has_token = False
         self.holder = nxt
-        self.send_message(MessageType.TOKEN, nxt, requester=nxt)
+        self.send_message(MessageType.TOKEN, nxt, requester=nxt, delay=1)
 
     def leave_cs(self):
         if self.in_cs:
             self.in_cs = False
-            print("t=", self.simulator.time,", Node", self.id, "quitte la section critique")
+            print("t=", self.simulator.current_time,", Node", self.node_id, "quitte la section critique")
         self.give_token_if_possible()
 
     def receive_message(self, message):
-        print("t=", self.simulator.time,", Node", self.id, "reçoit le message", message)
+        print("t=", self.simulator.current_time,", Node", self.node_id, "reçoit le message", message)
 
         if message.type == MessageType.REQUEST:
             req = message.requester
@@ -67,14 +67,14 @@ class Node:
 
             if (not self.has_token) and (not self.asked):
                 self.asked = True
-                self.send_message(MessageType.REQUEST, self.holder, requester=req)
+                self.send_message(MessageType.REQUEST, self.holder, requester=req, delay=1)
 
             if self.has_token and (not self.in_cs):
                 self.give_token_if_possible()
 
         elif message.type == MessageType.TOKEN:
             self.has_token = True
-            self.holder = self.id
+            self.holder = self.node_id
             self.asked = False
             self.give_token_if_possible()
 
@@ -83,4 +83,4 @@ class Node:
 
 
     def toString(self):
-        print("state N ", self.id, "holder=", self.holder, ",queue=", self.request_queue, ", token=", self.has_token, ", cs=", self.in_cs, ", asked=", self.asked)
+        print("Etat de Node ", self.node_id, "holder=", self.holder, ",queue=", self.request_queue, ", token=", self.has_token, ", cs=", self.in_cs, ", asked=", self.asked)

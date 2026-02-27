@@ -12,7 +12,7 @@ class Message:
         self.type = msg_type
         self.sender = sender_id
         self.receiver = receiver_id
-        self.requester = requester
+        self.requester = sender_id if requester is None else requester
 
     def __repr__(self):
         t = self.type.value if hasattr(self.type, "value") else str(self.type)

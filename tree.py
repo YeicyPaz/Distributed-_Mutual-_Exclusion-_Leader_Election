@@ -6,7 +6,7 @@ class Tree:
 
     def add_node(self, node):
         # ajoute le node dans la structure arbre
-        self.nodes[node.id] = node
+        self.nodes[node.node_id] = node
         # enregistre aussi le node dans simulateur
         self.sim.add_node(node)
 

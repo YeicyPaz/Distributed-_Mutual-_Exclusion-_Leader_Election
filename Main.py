@@ -1,4 +1,4 @@
-from Simulator import Simulator
+from simulator import Simulator
 from Node import Node
 from tree import Tree
 from Message import MessageType
@@ -29,6 +29,7 @@ if __name__ == "__main__":
     nodes[1].send_message(MessageType.RELEASE, 1, delay=1)
 
     nodes[4].request_cs()
+    nodes[2].request_cs()
     nodes[7].request_cs()
     nodes[5].request_cs()
 
