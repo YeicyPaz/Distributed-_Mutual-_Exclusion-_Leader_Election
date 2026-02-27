@@ -1,8 +1,9 @@
 from Channel import Channel
 from Node import Node
 from tree import Tree
-from Simulator import Simulator
+from simulator import Simulator
 from Message import MessageType
+from visualizer import Visualizer
 
 
 class Main:
@@ -41,3 +42,21 @@ if __name__ == "__main__":
 
     sim.run()
 
+    # Init
+    visualizer = Visualizer()
+    visualizer.setNodes(nodes)
+    visualizer.setEdges(tree.channels)
+    visualizer.setLeader(nodes[0])
+    visualizer.moveToken(nodes[0])
+    visualizer.capture()
+
+    # Test all features
+    visualizer.moveToken(nodes[2])
+    visualizer.messageTransit(nodes[0], nodes[1], "coordinator")
+    visualizer.messageTransit(nodes[0], nodes[2], "coordinator")
+    visualizer.messageTransit(nodes[6], nodes[2], "election")
+    visualizer.messageTransit(nodes[4], nodes[2], "request")
+    visualizer.messageTransit(nodes[3], nodes[1], "request")
+    visualizer.capture()
+    visualizer.clearTransit()
+    visualizer.capture()
