@@ -54,8 +54,8 @@ class Visualizer:
         tree = graphviz.Digraph(filename=str(self.nb_img), format='svg')
         
         for node in self.nodes:
-            border_color = "red" if node == self.nodeWithToken else "black"
-            if node == self.nodeLeader:
+            border_color = "red" if node == self.nodeLeader else "black"
+            if node == self.nodeWithToken:
                 tree.node(str(node.id), color=border_color, style='filled', fillcolor='yellow')
             else:
                 tree.node(str(node.id), color=border_color, style='solid')
