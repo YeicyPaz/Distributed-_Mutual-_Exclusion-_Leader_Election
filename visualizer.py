@@ -82,6 +82,7 @@ class Visualizer:
 
 
     def clear_img_folder(self):
-        for file in os.listdir(self.img_folder):
-            try: os.remove(self.img_folder+'/'+file)
-            except: continue
+        if os.path.isdir(self.img_folder):
+            for file in os.listdir(self.img_folder):
+                try: os.remove(self.img_folder+'/'+file)
+                except: continue
