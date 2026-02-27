@@ -3,6 +3,7 @@ class Tree:
         self.sim = simulator
         self.nodes = {}
         self.edges = []     #  arete (parent_id, child_id)
+        self.election_in_progress = False
 
     def add_node(self, node):
         # ajoute le node dans la structure arbre
@@ -72,3 +73,42 @@ class Tree:
         # affiche l etat de certain nodes
         for nid in ids:
             self.nodes[nid].toString()
+
+    def rebuild_tree_after_crash(self, crashed_node_id):
+        crashed = self.nodes[crashed_node_id]
+        orphan_children = crashed.children
+        crashed_parent = crashed.parent
+        if crashed_parent is not None:
+            # if the crashed node is not the root
+            for child in orphan_children:
+                self.connect_parent_child(crashed_parent.id, child.id)
+        else: #if its the root
+            if len(orphan_children) > 0:
+                new_root = orphan_children[0]
+                new_root.parent = None
+                
+                for child in orphan_children[1:]:
+                    if len(orphan_children) > 0:
+                        new_root = orphan_children[0]
+                        new_root.parent = None
+                        print(f"Node {new_root.id} devient nouvelle racine")
+                        
+                        # the orphan children (except the new root) are reattached to the new root
+                        for child in orphan_children[1:]:
+                            child.parent = new_root          # lien arbre
+                            new_root.children.append(child)  # lien arbre
+                            new_root.add_neighbor(child.id)  # lien réseau
+                            child.add_neighbor(new_root.id)  # lien réseau
+                            self.edges.append((new_root.id, child.id))  # arête
+                            print(f"Node {child.id} attached to {new_root.id}")
+
+
+    def raymond_election(self, crashed_node_id, initiator_id):
+        print(f"\n=== ELECTION after crash of Node {crashed_node_id}, initiated by Node {initiator_id} ===")
+        self.election_in_progress = True
+        # le node initiateur envoie une requete pour le token
+        #initiator = self.nodes[initiator_id]
+        #initiator.request_token()
+        for node_id, node in self.nodes.items():
+            print(f"Node {node_id} enters the election process.")
+            node.request_token()

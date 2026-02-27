@@ -1,6 +1,6 @@
 from Simulator import Simulator
 from Node import Node
-from tree import Tree
+from Tree import Tree
 from Message import MessageType
 
 if __name__ == "__main__":
@@ -35,3 +35,12 @@ if __name__ == "__main__":
     tree.toString([1, 2, 3, 4, 5, 7])
     sim.run()
     tree.toString([1, 2, 3, 4, 5, 7])
+
+
+    for i in nodes:
+        if nodes[i].has_token:
+            print(f"Node {i} has the token at the end of the simulation.")
+
+    # === VERIFICATION ELECTION ===
+    sim.crash_simulator(4)
+    sim.run()   # exécute tous les événements
