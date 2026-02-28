@@ -1,3 +1,9 @@
+from platform import node
+
+from shapely import node
+import random
+
+
 class Tree:
     def __init__(self, simulator):
         self.sim = simulator
@@ -103,12 +109,41 @@ class Tree:
                             print(f"Node {child.id} attached to {new_root.id}")
 
 
+    def test1_raymond_election(self, crashed_node_id, initiator_id):
+        print(f"\n=== ELECTION after crash of Node {crashed_node_id}, initiated by Node {initiator_id} ===")
+        self.election_in_progress = True
+        nodes_in_election = set(self.nodes.keys()) - {crashed_node_id}  # we take all nodes except the crashed one
+        for node_id, node in self.nodes.items():
+            if node_id in nodes_in_election:
+                print(f"Node {node_id} enters the election process.")
+                node.request_cs()
+        
+        #we give the token to the elected node
+        for node_id, node in self.nodes.items():
+            if node_id == crashed_node_id:
+                
+                node.has_token = False  # the crashed node can no longer hold the token
+
     def raymond_election(self, crashed_node_id, initiator_id):
         print(f"\n=== ELECTION after crash of Node {crashed_node_id}, initiated by Node {initiator_id} ===")
         self.election_in_progress = True
-        # le node initiateur envoie une requete pour le token
-        #initiator = self.nodes[initiator_id]
-        #initiator.request_token()
-        for node_id, node in self.nodes.items():
+        
+        nodes_in_election = set(self.nodes.keys()) - {crashed_node_id}
+        
+        other_nodes = list(nodes_in_election - {initiator_id})
+        random.shuffle(other_nodes)
+        ordered_nodes = [initiator_id] + other_nodes 
+
+        #asking to enter the cs with previous order
+        for node_id in ordered_nodes:
+            node = self.nodes[node_id]
             print(f"Node {node_id} enters the election process.")
-            node.request_token()
+            node.request_cs()
+    
+        #we give the token to the elected node
+        for node_id in self.nodes:
+            node = self.nodes[node_id]
+            if node.has_token:
+                print(f"the queue of the crashed node {node_id} is: {node.request_queue}")
+                node.give_token_if_possible()  # the elected node takes the token and enters the critical section
+        

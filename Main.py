@@ -26,21 +26,11 @@ if __name__ == "__main__":
     nodes[1].in_cs = True
     print("Initial: token at Node 1 and it is in CS")
 
-    nodes[1].send_message(MessageType.RELEASE, 1, delay=1)
-
-    nodes[4].request_cs()
-    nodes[7].request_cs()
-    nodes[5].request_cs()
-
-    tree.toString([1, 2, 3, 4, 5, 7])
-    sim.run()
-    tree.toString([1, 2, 3, 4, 5, 7])
-
 
     for i in nodes:
         if nodes[i].has_token:
             print(f"Node {i} has the token at the end of the simulation.")
 
     # === VERIFICATION ELECTION ===
-    sim.crash_simulator(4)
+    sim.crash_simulator(tree, 1)
     sim.run()   # exécute tous les événements

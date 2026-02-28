@@ -29,7 +29,7 @@ class Simulator:
             receiver = self.nodes[event.message.receiver]
             receiver.receive_message(event.message)
     
-    def crash_simulator(self, node_id): #the node crash and the tree build it self again
+    def crash_simulator(self,tree, node_id): #the node crash and the tree build it self again
         if node_id in self.nodes:
             print(f"[t={self.time}] Node {node_id} has crashed.")
             crashed_node = self.nodes[node_id]
@@ -38,8 +38,8 @@ class Simulator:
                 print(f"Node {node_id} was in critical section during crash. Releasing token.")
                 # If the crashed node was in the critical section, we need to release the token
                 # and trigger the election process to find a new token holder
-                crashed_node.has_token = False
-                self.tree.raymond_election(node_id,3)  #------------ CHANGE the initiator of the election ------------
+                
+                tree.raymond_election(node_id,3)  #------------ CHANGE the initiator of the election ------------
             
                 # After the crash, we need to check if the election process has completed and if the new leader is correctly elected
                 token_holders = [nid for nid, node in self.nodes.items() if node.has_token]
