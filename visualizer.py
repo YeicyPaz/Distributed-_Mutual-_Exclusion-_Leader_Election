@@ -7,6 +7,11 @@ from tkinter import ttk
 from tkinter import PhotoImage
 from Node import Node
 
+# Path to the Graphviz software's bin folder
+graphviz_path = os.path.abspath("Graphviz-14.1.2-win64/bin")
+# Add to PATH temporarily
+os.environ["PATH"] += os.pathsep + graphviz_path
+
 class Visualizer:
     """Tkinter interface for visualizing Global States and Distributed Snapshots of processes and their tasks."""
 
