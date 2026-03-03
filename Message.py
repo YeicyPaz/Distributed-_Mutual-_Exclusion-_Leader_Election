@@ -5,8 +5,7 @@ class MessageType(Enum):
     REQUEST = "REQUEST"
     TOKEN = "TOKEN"
     RELEASE = "RELEASE"
-
-
+    COORDINATOR = "COORDINATOR" #ajout d'un message pour l'élection
 class Message:
     def __init__(self, msg_type, sender_id, receiver_id, requester=None):
         self.type = msg_type

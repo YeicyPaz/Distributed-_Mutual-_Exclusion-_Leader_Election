@@ -14,6 +14,20 @@ class Simulator:
         self.event_seq = 0
         self.visualizer = visualizer
 
+    def crash_simulator(self, tree, node_id):
+        if node_id in self.nodes:
+            print(f"[t={self.current_time}] Node {node_id} has crashed.")
+            crashed_node = self.nodes[node_id]
+            
+            for neighbor_id in list(crashed_node.neighbors.keys()):
+                neighbor = self.nodes[neighbor_id]
+                neighbor.neighbors.pop(node_id, None)
+
+            #reparation de l'arbre avant de supprimer le nœud
+            tree.rebuild_tree_after_crash(node_id)
+
+            del self.nodes[node_id]
+
     def add_node(self, node): #registre de nodes dans le system
         print(f"Adding node {node} to the simulator.")
         self.nodes[node.node_id] = node
@@ -55,8 +69,11 @@ class Simulator:
             self.current_time = arrival_time
 
             #donation du message au node destine
-            target_node =self.nodes[message.receiver]
-            target_node.receive_message(message)
+            if message.receiver in self.nodes: #ajout du if pour eviter les messages fantomes
+                target_node =self.nodes[message.receiver]
+                target_node.receive_message(message)
+            else:
+                print(f"t={self.current_time}: Message {message} ignoré. Node {message.receiver} n'existe pas/plus.")
 
             # draw message transit in visualizer
             if self.visualizer:
