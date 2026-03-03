@@ -68,6 +68,38 @@ class Tree:
                 # le holder pointe vers le voisin qui rapproche du token
                 node.holder = parent_in_bfs[nid]
 
+    def rebuild_tree_after_crash(self, crashed_node_id):
+        if crashed_node_id not in self.nodes:
+            return
+            
+        crashed = self.nodes[crashed_node_id]
+        orphan_children = crashed.children
+        crashed_parent = crashed.parent
+
+        print(f"--- Réparation de l'arbre après crash du Node {crashed_node_id} ---")
+
+        if crashed_parent is not None:
+            # détache le nœud crashé de son parent
+            if crashed in crashed_parent.children:
+                crashed_parent.children.remove(crashed)
+                
+            for child in orphan_children:
+                self.connect_parent_child(crashed_parent.id, child.id)
+                #le fils doit pointer vers son nouveau parent pour le jeton
+                child.holder = crashed_parent.id
+                print(f"Node {child.id} est maintenant rattaché à son grand-parent {crashed_parent.id}")
+        else:
+            # si c'etait la racine, on choisit le premier enfant comme nouvelle racine
+            if len(orphan_children) > 0:
+                new_root = orphan_children[0]
+                new_root.parent = None
+                new_root.holder = new_root.node_id # la racine pointe sur elle-même
+                
+                for child in orphan_children[1:]:
+                    self.connect_parent_child(new_root.node_id, child.node_id)
+                    child.holder = new_root.node_id
+                print(f"Node {new_root.node_id} devient la nouvelle racine")
+
     def toString(self, ids):
         # affiche l etat de certain nodes
         for nid in ids:
