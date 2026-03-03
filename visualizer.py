@@ -10,7 +10,7 @@ from Node import Node
 class Visualizer:
     """Tkinter interface for visualizing Global States and Distributed Snapshots of processes and their tasks."""
 
-    msg_colors = {"request":"maroon", "token":"gold", "election":"blue", "coordinator":"purple"}
+    msg_colors = {'REQUEST':'maroon', 'TOKEN':'gold', 'ELECTION':'blue', 'COORDINATOR':'purple'}
     format = "png"
 
 
@@ -21,7 +21,7 @@ class Visualizer:
         self.clear_img_folder()
         self.nb_img = 0
         self.autocapture = autocapture
-        self.nodes = []
+        self.nodes = {}
         self.edges = []         # format: [(node1, node2)]      -> represents channels betweeen processes
         self.edges_msg = {}     # format: {(sender_node, receiver_node): message_type}
         self.nodeWithToken = None
@@ -29,15 +29,15 @@ class Visualizer:
         self.request_queues = {}
         self._create_interface()
     
-    def setNodes(self, nodes:[Node]):
+    def setNodes(self, nodes:{int:Node}):
         self.nodes = nodes
 
 
-    def setEdges(self, edges:[[Node, Node]]):
+    def setEdges(self, edges:[[int,int]]):
         self.edges = []
         self.edges_msg = {}
-        for node1,node2 in edges:
-            self.edges.append((node1, node2))
+        for i,j in edges:
+            self.edges.append((self.nodes[i], self.nodes[j]))
 
 
     def moveToken(self, node:Node):
@@ -62,32 +62,32 @@ class Visualizer:
         # Build tree processes system and save as SVG
         tree = graphviz.Digraph(filename=str(self.nb_img), format=Visualizer.format)
         
-        for node in self.nodes:
+        for id,node in self.nodes.items():
             border_color = "red" if node == self.nodeLeader else "black"
             if node == self.nodeWithToken:
-                tree.node(str(node.id), color=border_color, style='filled', fillcolor='yellow')
+                tree.node(str(id), color=border_color, style='filled', fillcolor='yellow')
             else:
-                tree.node(str(node.id), color=border_color, style='solid')
+                tree.node(str(id), color=border_color, style='solid')
         
         for node1, node2 in self.edges:
             if (node1,node2) in self.edges_msg:
                 # message transits from father to son -> display directed link to the son
                 msg_type = self.edges_msg[(node1,node2)]
                 color = Visualizer.msg_colors[msg_type] if msg_type in Visualizer.msg_colors else "black"
-                tree.edge(str(node1.id), str(node2.id), color=color, dir='forward')
+                tree.edge(str(node1.node_id), str(node2.node_id), color=color, dir='forward')
             
             elif (node2,node1) in self.edges_msg:
                 # message transits from son to father -> display directed link to the father
                 msg_type = self.edges_msg[(node2,node1)]
                 color = Visualizer.msg_colors[msg_type] if msg_type in Visualizer.msg_colors else "black"
-                tree.edge(str(node1.id), str(node2.id), color=color, dir='back')    # trick to keep same tree structure with edge from father to son but inversed arrow
+                tree.edge(str(node1.node_id), str(node2.node_id), color=color, dir='back')    # trick to keep same tree structure with edge from father to son but inversed arrow
             
             else:
                 # no message transits -> display simple link to represent channel between processes
-                tree.edge(str(node1.id), str(node2.id), color="black", dir='none')
+                tree.edge(str(node1.node_id), str(node2.node_id), color="black", dir='none')
         
             # Save request queues of processes
-            self.request_queues[self.nb_img] = {node.id: list(map(lambda x: str(x), node.request_queue)) for node in self.nodes}
+            self.request_queues[self.nb_img] = {id: list(map(lambda x: str(x), node.request_queue)) for id,node in self.nodes.items()}
 
         self.nb_img += 1
         return tree.render(directory=self.img_folder)
@@ -134,10 +134,10 @@ class Visualizer:
         frame = tk.Frame(legend, background="red")
         frame.grid(row=0, column=1, padx=17, pady=5)
         tk.Label(frame, bg="white", font='Arial 12 bold', text="Leader").pack(padx=2, pady=2)
-        tk.Label(legend, bg="white", font='Arial 12 bold', text="→ Request", fg=Visualizer.msg_colors['request']).grid(row=0, column=2, padx=15, pady=5)
-        tk.Label(legend, bg="white", font='Arial 12 bold', text="→ Token", fg=Visualizer.msg_colors['token']).grid(row=0, column=3, padx=15, pady=5)
-        tk.Label(legend, bg="white", font='Arial 12 bold', text="→ Election", fg=Visualizer.msg_colors['election']).grid(row=0, column=4, padx=15, pady=5)
-        tk.Label(legend, bg="white", font='Arial 12 bold', text="→ Coordinator", fg=Visualizer.msg_colors['coordinator']).grid(row=0, column=5, padx=15, pady=5)
+        tk.Label(legend, bg="white", font='Arial 12 bold', text="→ Request", fg=Visualizer.msg_colors['REQUEST']).grid(row=0, column=2, padx=15, pady=5)
+        tk.Label(legend, bg="white", font='Arial 12 bold', text="→ Token", fg=Visualizer.msg_colors['TOKEN']).grid(row=0, column=3, padx=15, pady=5)
+        tk.Label(legend, bg="white", font='Arial 12 bold', text="→ Election", fg=Visualizer.msg_colors['ELECTION']).grid(row=0, column=4, padx=15, pady=5)
+        tk.Label(legend, bg="white", font='Arial 12 bold', text="→ Coordinator", fg=Visualizer.msg_colors['COORDINATOR']).grid(row=0, column=5, padx=15, pady=5)
     
 
     def _back(self):
@@ -178,9 +178,9 @@ class Visualizer:
             self.tree_system.configure(image=image)
             self.tree_system.image = image
             # update table
-            for node in self.nodes:
-                queue = ", ".join(self.request_queues[self.step][node.id])
-                self.req_queue_vars[node.id].set(queue)
+            for id,node in self.nodes.items():
+                queue = ", ".join(self.request_queues[self.step][id])
+                self.req_queue_vars[id].set(queue)
         except Exception as e: print(e)
 
 
@@ -190,12 +190,13 @@ class Visualizer:
         self.req_queue_vars = {}
 
         # init table
-        for n in range(len(self.nodes)):
-            node_id = self.nodes[n].id
+        n = 0
+        for id, node in self.nodes.items():
             var = tk.StringVar()
-            self.req_queue_vars[node_id] = var
-            tk.Label(self.fifo_req_table, bg="white", width=7, font='Arial 14 bold', relief="groove", text=str(node_id)).grid(row=n+1, column=0)
+            self.req_queue_vars[id] = var
+            tk.Label(self.fifo_req_table, bg="white", width=7, font='Arial 14 bold', relief="groove", text=str(id)).grid(row=n+1, column=0)
             tk.Label(self.fifo_req_table, bg="white", width=20, font='Arial 14 bold', relief="groove", textvariable=var).grid(row=n+1, column=1)
+            n += 1
         
         self._update_system()
         self.root.mainloop()

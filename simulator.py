@@ -6,12 +6,13 @@ from Node import Node
 from Message import Message, MessageType
 
 class Simulator:
-    def __init__(self):
+    def __init__(self, visualizer=None):
         self.event_queue = [] # queue d'attend de priorité used with heapq
         self.current_time = 0
         self.nodes = {}
         self.last_arrival_per_link = {} #dictionnaire pour garantir l'ordre FIFO par canal
         self.event_seq = 0
+        self.visualizer = visualizer
 
     def add_node(self, node): #registre de nodes dans le system
         print(f"Adding node {node} to the simulator.")
@@ -45,12 +46,27 @@ class Simulator:
 
             arrival_time, _, message = heapq.heappop(self.event_queue)
 
+            # capture another instant system state 
+            if self.visualizer and arrival_time != self.current_time:
+                self.visualizer.capture()
+                self.visualizer.clearTransit()
+
             #avance le global time au temps de l'evenment actuel
             self.current_time = arrival_time
 
             #donation du message au node destine
             target_node =self.nodes[message.receiver]
             target_node.receive_message(message)
+
+            # draw message transit in visualizer
+            if self.visualizer:
+                self.visualizer.messageTransit(self.nodes[message.sender], self.nodes[message.receiver], message.type.value)
+                # view one instant in 2 frames for token moving
+                if message.type.value == "TOKEN":
+                    self.visualizer.moveToken(None) # token is moving
+                    self.visualizer.capture()
+                    self.visualizer.clearTransit()
+                    self.visualizer.moveToken(self.nodes[message.receiver])
 
             processed_steps += 1
 

@@ -5,145 +5,49 @@ from Message import MessageType
 from visualizer import Visualizer
 
 if __name__ == "__main__":
-    sim = Simulator()
+    visualizer = Visualizer()
+    sim = Simulator(visualizer)
     tree = Tree(sim)
 
+    # CHOOSE THE NUMBER OF NODES HERE
     nodes = {}
-    for i in range(1, 9):
-        n = Node(i, sim)
-        nodes[i] = n
-        tree.add_node(n)
+    for i in range(1,11):
+        node = Node(i, sim)
+        nodes[i] = node
+        tree.add_node(node)
+    visualizer.setNodes(nodes)
 
-    tree.connect_parent_child(1, 2)
-    tree.connect_parent_child(1, 3)
-    tree.connect_parent_child(2, 4)
-    tree.connect_parent_child(3, 5)
-    tree.connect_parent_child(3, 6)
-    tree.connect_parent_child(3, 7)
-    tree.connect_parent_child(7, 8)
+    # CREATE TREE STRUCTURE HERE
+    edges = [
+        [1,2], [1,3],
+        [2,4], [2,5], [2,6], [3,7], [3,8],
+        [8,9], [8,10]
+    ]
+    for i,j in edges:
+        tree.connect_parent_child(i,j)
+    visualizer.setEdges(edges)
 
-    tree.init_holders_from_token(token_id=1)
+    # CHOOSE THE NODE LEADER OF SYSTEM
+    leader = 1
+    visualizer.setLeader(nodes[leader])
+    #TODO: complete with Klaudia code
 
-    nodes[1].in_cs = True
-    print("Initial: token at Node 1 and it is in CS")
+    # CHOOSE THE TOKEN'S HOLDER AT STARTING AND WHEN IT RELEASES
+    tk_holder = 1
+    tree.init_holders_from_token(token_id=tk_holder)
+    nodes[tk_holder].in_cs = True
+    print(f"Initial: token at Node {tk_holder} and it is " + "" if nodes[tk_holder].in_cs else "not" + " in CS")
+    nodes[tk_holder].send_message(MessageType.RELEASE, tk_holder, delay=1)
+    visualizer.moveToken(nodes[tk_holder])
 
-    nodes[1].send_message(MessageType.RELEASE, 1, delay=1)
-
-    nodes[4].request_cs()
-    nodes[2].request_cs()
+    # CHOOSE NODES THAT REQUEST TOKEN AT STARTING
+    nodes[6].request_cs()
+    nodes[9].request_cs()
     nodes[7].request_cs()
     nodes[5].request_cs()
 
-    tree.toString([1, 2, 3, 4, 5, 7])
+    tree.toString(nodes.keys())
     sim.run()
-    tree.toString([1, 2, 3, 4, 5, 7])
+    tree.toString(nodes.keys())
 
-
-    ## Sample Test made without logical code (just visualizer) -> see SW4
-
-    nodes = {id: Node(id,sim) for id in range(1,11)}
-    tree_sw4 = Tree()
-    tree_sw4.addRoot(nodes[1])
-    tree_sw4.addLevel([nodes[2], nodes[3]])
-    tree_sw4.addLevel([nodes[4], nodes[5], nodes[6], nodes[7], nodes[8]])
-    tree_sw4.addLevel([nodes[9], nodes[10]])
-
-    tree_sw4.addChannels(nodes[1], nodes[2])
-    tree_sw4.addChannels(nodes[1], nodes[3])
-    tree_sw4.addChannels(nodes[2], nodes[4])
-    tree_sw4.addChannels(nodes[2], nodes[5])
-    tree_sw4.addChannels(nodes[2], nodes[6])
-    tree_sw4.addChannels(nodes[3], nodes[7])
-    tree_sw4.addChannels(nodes[3], nodes[8])
-    tree_sw4.addChannels(nodes[8], nodes[9])
-    tree_sw4.addChannels(nodes[8], nodes[10])
-
-    visualizer = Visualizer()
-
-    # Capture 0 : initialization
-    visualizer.setNodes(list(nodes.values()))
-    visualizer.setEdges(tree_sw4.channels)
-    visualizer.setLeader(nodes[1])
-    visualizer.moveToken(nodes[1])
-    nodes[1].request_queue.append(2)
-    nodes[2].request_queue.append(6)
-    nodes[6].request_queue.append(6)
-    visualizer.capture()
-
-    # Capture 1 : node 1 keep token (in the CS) and nodes 9, 7 and 5 request the token
-    nodes[9].request_queue.append(9)
-    nodes[7].request_queue.append(7)
-    nodes[5].request_queue.append(5)
-    visualizer.messageTransit(nodes[9], nodes[8], "request")
-    visualizer.messageTransit(nodes[7], nodes[3], "request")
-    visualizer.messageTransit(nodes[5], nodes[2], "request")
-    visualizer.capture()
-    visualizer.clearTransit()
-
-    # Capture 2 : update of request queues
-    nodes[8].request_queue.append(9)
-    nodes[3].request_queue.append(7)
-    nodes[2].request_queue.append(5)
-    visualizer.capture()
-
-    # Capture 3 : node 1 keep token (in the CS) and propagation of requests
-    visualizer.messageTransit(nodes[8], nodes[3], "request")
-    visualizer.messageTransit(nodes[3], nodes[1], "request")
-    visualizer.messageTransit(nodes[2], nodes[1], "request")
-    visualizer.capture()
-    visualizer.clearTransit()
-    
-    # Capture 4 : update of request queues
-    nodes[3].request_queue.append(8)
-    nodes[1].request_queue.append(3)
-    visualizer.capture()
-
-    # Capture 5 : node 1 leaves the CS and give token to first node in request queue (normally node 2)
-    receiver_id = nodes[1].request_queue.pop(0)
-    visualizer.messageTransit(nodes[1], nodes[receiver_id], "token")
-    visualizer.moveToken(None)
-    visualizer.capture()
-    visualizer.clearTransit()
-
-    # Capture 6 : Token holder changes (normally node 2) and add node which gives the token to request queue
-    visualizer.moveToken(nodes[receiver_id])
-    nodes[receiver_id].request_queue.append(1)
-    visualizer.capture()
-
-    # Continue the algorithm
-    while len(nodes[receiver_id].request_queue) > 0:
-        sender_id = receiver_id
-        receiver_id = nodes[sender_id].request_queue.pop(0)
-        #print("sender:",sender_id,nodes[sender_id].request_queue,"receiver",receiver_id,nodes[receiver_id].request_queue)
-        if sender_id == receiver_id:
-            # node is itself in its request queue -> node needs token to access cs
-            # one momentary pause for access to the CS
-            visualizer.capture()
-            continue
-        visualizer.messageTransit(nodes[sender_id], nodes[receiver_id], "token")
-        visualizer.moveToken(None)
-        visualizer.capture()
-        visualizer.clearTransit()
-        
-        visualizer.moveToken(nodes[receiver_id])
-        if len(nodes[sender_id].request_queue) > 0:
-            # the node that gives token has others nodes in request queue so needs the token back
-            nodes[receiver_id].request_queue.append(sender_id)
-        visualizer.capture()
-
-    # Test all features
-    # visualizer.moveToken(None)
-    # nodes[0].request_queue.pop(0)
-    # visualizer.messageTransit(nodes[0], nodes[1], "coordinator")
-    # visualizer.messageTransit(nodes[0], nodes[2], "token")
-    # visualizer.messageTransit(nodes[6], nodes[2], "election")
-    # visualizer.messageTransit(nodes[4], nodes[2], "request")
-    # visualizer.messageTransit(nodes[3], nodes[1], "request")
-    # visualizer.capture()
-    # visualizer.clearTransit()
-    # visualizer.moveToken(nodes[2])
-    # nodes[1].request_queue.append(4)
-    # nodes[2].request_queue.append(5)
-    # visualizer.capture()
-    
     visualizer.show()
