@@ -17,6 +17,3 @@ class Message:
     def __repr__(self):
         t = self.type.value if hasattr(self.type, "value") else str(self.type)
         return f"{t}({self.sender} -> {self.receiver}, req={self.requester})"
-
-    def __repr__(self):
-        return f"[{self.content}] de {self.sender} a {self.receiver}"
