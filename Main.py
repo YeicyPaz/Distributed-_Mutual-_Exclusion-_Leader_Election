@@ -36,3 +36,5 @@ if __name__ == "__main__":
     tree.toString([1, 2, 3, 4, 5, 7])
     sim.run()
     tree.toString([1, 2, 3, 4, 5, 7])
+
+    print(nodes[3].request_queue)

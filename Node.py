@@ -51,6 +51,10 @@ class Node:
         self.holder = nxt
         self.send_message(MessageType.TOKEN, nxt, requester=nxt, delay=1)
 
+        if len(self.request_queue) > 0 and (not self.asked) and (self.holder is not None):
+            self.asked = True
+            self.send_message(MessageType.REQUEST, self.holder, requester=self.request_queue[0], delay=1)
+
     def leave_cs(self):
         if self.in_cs:
             self.in_cs = False
@@ -61,13 +65,15 @@ class Node:
         print("t=", self.simulator.current_time,", Node", self.node_id, "reçoit le message", message)
 
         if message.type == MessageType.REQUEST:
-            req = message.requester
-            if req not in self.request_queue:
-                self.request_queue.append(req)
+            origin = message.requester         
+            neighbor = message.sender
 
-            if (not self.has_token) and (not self.asked):
+            if neighbor not in self.request_queue:
+                self.request_queue.append(neighbor)
+
+            if (not self.has_token) and (self.holder is not None) and (len(self.request_queue) == 1):
                 self.asked = True
-                self.send_message(MessageType.REQUEST, self.holder, requester=req, delay=1)
+                self.send_message(MessageType.REQUEST, self.holder, requester=origin, delay=1)
 
             if self.has_token and (not self.in_cs):
                 self.give_token_if_possible()
