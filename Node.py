@@ -18,9 +18,16 @@ class Node:
     def fail(self): #crash du node
         print("t=", self.simulator.current_time,", Node", self.node_id, "crash")
         self.is_alive = False
+        if self.simulator.visualizer and self.node_id == self.current_leader : self.simulator.visualizer.setLeader(None)
 
     def add_neighbor(self, neighbor_id, channel=None):
         self.neighbors[neighbor_id] = channel
+    
+    def update_neighbors(self):
+        self.neighbors = {}
+        if self.parent: self.neighbors[self.parent.node_id] = self.parent
+        for child in self.children: self.neighbors[child.node_id] = child
+        print(self.node_id, self.neighbors.keys())
 
     def send_message(self, msg_type, receiver_id, requester=None, delay=None):
         m = Message(msg_type, self.node_id, receiver_id, requester=requester)
@@ -60,6 +67,7 @@ class Node:
         if len(self.request_queue) > 0 and (not self.asked) and (self.holder is not None):
             self.asked = True
             self.send_message(MessageType.REQUEST, self.holder, requester=self.request_queue[0], delay=1)
+            #self.simulator.nodes[nxt].request_queue.append(self.node_id)
 
     def leave_cs(self):
         if self.in_cs:
@@ -91,36 +99,44 @@ class Node:
             self.has_token = True
             self.holder = self.node_id
             self.asked = False
-            # CONDITION D'ÉLECTION : 
-            # Si je reçois le jeton et que je sais qu'une élection est en cours 
-            # (ou que le leader précédent est mort)
-            if self.simulator.nodes.get(self.current_leader) is None or not hasattr(self.simulator.nodes[self.current_leader], 'is_alive') or not self.simulator.nodes[self.current_leader].is_alive:
+            #if self.simulator.nodes[message.sender].request_queue:
+                #self.request_queue.append(message.sender)
+            # CONDITION D'ÉLECTION : Si je reçois le jeton et que je sais qu'une élection est en cours 
+            if self.current_leader == None:
                 self.become_leader()
             self.give_token_if_possible()
 
         elif message.type == MessageType.RELEASE:
             self.leave_cs()
         
+        elif message.type == MessageType.ELECTION:
+            self.current_leader = None
+            if self.has_token:
+                self.become_leader()
+            else:
+                for neighbor_id in self.neighbors:
+                    if neighbor_id != message.sender:
+                        self.send_message(MessageType.ELECTION, neighbor_id, delay=1)
+        
         elif message.type == MessageType.COORDINATOR:
             self.current_leader = message.requester
-            # le token est dans la direction de celui qui m'envoie l'info
-            self.holder = message.sender 
-            
             print(f"---->Node {self.node_id} confirme : le nouveau COORDINATEUR est Node {self.current_leader} (connu via Node {message.sender})")
             # annonce du nouveau coordinateur aux voisins
             for neighbor_id in self.neighbors:
                 if neighbor_id != message.sender:
                     self.send_message(MessageType.COORDINATOR, neighbor_id, requester=message.requester, delay=1)
-
-            # si il y a des requetes en attente, je les renvoie vers le nouveau holder
-            if self.request_queue and not self.has_token:
-                self.asked = True
-                self.send_message(MessageType.REQUEST, self.holder, requester=self.request_queue[0], delay=1)
-                
+    
     def become_leader(self):
         self.current_leader = self.node_id
+        if self.simulator.visualizer: self.simulator.visualizer.setLeader(self)
         for neighbor_id in self.neighbors:
             self.send_message(MessageType.COORDINATOR, neighbor_id, requester=self.node_id, delay=1)
+    
+    def start_election(self):
+        # Lancement de la procédure d'élection -> le node possédant le token qui recevra un message d'élection deviendra le nouveau leader
+        self.current_leader = None
+        for neighbor_id in self.neighbors.keys():
+            self.send_message(MessageType.ELECTION, neighbor_id, delay=0)
 
     def toString(self):
         print("Etat de Node ", self.node_id, "holder=", self.holder, ",queue=", self.request_queue, ", token=", self.has_token, ", cs=", self.in_cs, ", asked=", self.asked)

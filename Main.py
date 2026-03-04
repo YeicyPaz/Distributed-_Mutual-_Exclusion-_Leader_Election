@@ -8,6 +8,7 @@ if __name__ == "__main__":
     visualizer = Visualizer()
     sim = Simulator(visualizer)
     tree = Tree(sim)
+    sim.tree = tree
 
     # CHOOSE THE NUMBER OF NODES HERE
     nodes = {}
@@ -30,14 +31,19 @@ if __name__ == "__main__":
     # CHOOSE THE NODE LEADER OF SYSTEM
     leader = 1
     visualizer.setLeader(nodes[leader])
-    #TODO: complete with Klaudia code
+    # init the leader knowledge by nodes to prevent new election at start
+    for node in nodes.values():
+        node.current_leader = leader
+
+    # CHOOSE NODES THAT WILL CRASH AND WHEN (to simulate new leader election)
+    sim.crash_schedule[16] = 1    # node 1 (leader) will crash at timestamp 15
 
     # CHOOSE THE TOKEN'S HOLDER AT STARTING AND WHEN IT RELEASES
     tk_holder = 1
     tree.init_holders_from_token(token_id=tk_holder)
     nodes[tk_holder].in_cs = True
     print(f"Initial: token at Node {tk_holder} and it is " + "" if nodes[tk_holder].in_cs else "not" + " in CS")
-    nodes[tk_holder].send_message(MessageType.RELEASE, tk_holder, delay=1)
+    nodes[tk_holder].send_message(MessageType.RELEASE, tk_holder, delay=3)
     visualizer.moveToken(nodes[tk_holder])
 
     # CHOOSE NODES THAT REQUEST TOKEN AT STARTING

@@ -13,20 +13,42 @@ class Simulator:
         self.last_arrival_per_link = {} #dictionnaire pour garantir l'ordre FIFO par canal
         self.event_seq = 0
         self.visualizer = visualizer
+        self.crash_schedule = {}    # format: {timestamp:nodeID}
+        self.tree = None
 
     def crash_simulator(self, tree, node_id):
         if node_id in self.nodes:
-            print(f"[t={self.current_time}] Node {node_id} has crashed.")
             crashed_node = self.nodes[node_id]
+            crashed_node.fail()
+            if self.visualizer: self.visualizer.nodes_crashed.append(crashed_node)
             
             for neighbor_id in list(crashed_node.neighbors.keys()):
                 neighbor = self.nodes[neighbor_id]
                 neighbor.neighbors.pop(node_id, None)
 
             #reparation de l'arbre avant de supprimer le nœud
-            tree.rebuild_tree_after_crash(node_id)
+            node_promoted = tree.rebuild_tree_after_crash(node_id)
 
             del self.nodes[node_id]
+
+            # remove crashed node in requests queues
+            for node in self.nodes.values():
+                node.request_queue = list(filter(lambda x: x!=node_id, node.request_queue))
+            crashed_node.request_queue = []
+            # and retry the failed requests
+            while crashed_node.request_queue:
+                self.nodes[crashed_node.request_queue.pop(0)].request_cs()
+            
+
+            # Node promoted start election for a new leader if crashed node was leader
+            # if node promoted has token, it will become directly leader (no election transmission)
+            if node_promoted.has_token: node_promoted.become_leader()
+            elif node_id == node_promoted.current_leader: node_promoted.start_election()
+
+            if self.visualizer:
+                self.visualizer.setNodes(self.tree.nodes)
+                self.visualizer.setEdges(self.tree.edges)
+                self.visualizer.capture()
 
     def add_node(self, node): #registre de nodes dans le system
         print(f"Adding node {node} to the simulator.")
@@ -68,58 +90,31 @@ class Simulator:
             #avance le global time au temps de l'evenment actuel
             self.current_time = arrival_time
 
+            # check if crash must happen
+            crashed_node_id = self.crash_schedule.get(self.current_time)
+            if crashed_node_id:
+                self.crash_simulator(self.tree, crashed_node_id)
+                self.crash_schedule.pop(self.current_time)
+
             #donation du message au node destine
             if message.receiver in self.nodes: #ajout du if pour eviter les messages fantomes
                 target_node =self.nodes[message.receiver]
                 target_node.receive_message(message)
+
+                # draw message transit in visualizer
+                if self.visualizer:
+                    self.visualizer.messageTransit(self.nodes[message.sender], self.nodes[message.receiver], message.type.value)
+                    # view one instant in 2 frames for token moving
+                    if message.type.value == "TOKEN":
+                        self.visualizer.moveToken(None) # token is moving
+                        self.visualizer.capture()
+                        self.visualizer.clearTransit()
+                        self.visualizer.moveToken(self.nodes[message.receiver])
+
             else:
                 print(f"t={self.current_time}: Message {message} ignoré. Node {message.receiver} n'existe pas/plus.")
-
-            # draw message transit in visualizer
-            if self.visualizer:
-                self.visualizer.messageTransit(self.nodes[message.sender], self.nodes[message.receiver], message.type.value)
-                # view one instant in 2 frames for token moving
-                if message.type.value == "TOKEN":
-                    self.visualizer.moveToken(None) # token is moving
-                    self.visualizer.capture()
-                    self.visualizer.clearTransit()
-                    self.visualizer.moveToken(self.nodes[message.receiver])
 
             processed_steps += 1
 
 
         print("______Simulation finalisé______")
-
-    
-
-# ## ____TEST____
-# if __name__=="__main__":
-#     sim = Simulator()
-
-#     #creation de node de test
-#     n1= Node(1, sim)
-#     n2= Node(2, sim)
-#     n3= Node(3, sim)
-
-    
-
-#     sim.add_node(n1)
-#     sim.add_node(n2)
-#     sim.add_node(n3)
-
-#     n1.has_token = True
-#     n1.holder = 1
-
-#     n2.has_token = False
-#     n2.holder = 1
-
-#     n3.has_token = False
-#     n3.holder = 1
-                
-#     #simulation d'envoi de message pour tester l'ordre FIFO et les retards des system
-#     print("Programando mensajes...")
-#     n1.send_message(MessageType.REQUEST, 3)
-#     n1.send_message(MessageType.REQUEST, 2)
-            
-#     # Ejecutar
-#     sim.run()

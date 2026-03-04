@@ -27,6 +27,7 @@ class Visualizer:
         self.nb_img = 0
         self.autocapture = autocapture
         self.nodes = {}
+        self.nodes_crashed = []
         self.edges = []         # format: [(node1, node2)]      -> represents channels betweeen processes
         self.edges_msg = {}     # format: {(sender_node, receiver_node): message_type}
         self.nodeWithToken = None
@@ -68,7 +69,7 @@ class Visualizer:
         tree = graphviz.Digraph(filename=str(self.nb_img), format=Visualizer.format)
         
         for id,node in self.nodes.items():
-            border_color = "red" if node == self.nodeLeader else "black"
+            border_color = "red" if node == self.nodeLeader else "green" if node in self.nodes_crashed else "black"
             if node == self.nodeWithToken:
                 tree.node(str(id), color=border_color, style='filled', fillcolor='yellow')
             else:
@@ -137,12 +138,15 @@ class Visualizer:
         legend.pack(padx=20, pady=10)
         tk.Label(legend, bg="yellow", font='Arial 12 bold', text="Token holder").grid(row=0, column=0, padx=15, pady=5)
         frame = tk.Frame(legend, background="red")
-        frame.grid(row=0, column=1, padx=17, pady=5)
+        frame.grid(row=0, column=1, padx=15, pady=5)
         tk.Label(frame, bg="white", font='Arial 12 bold', text="Leader").pack(padx=2, pady=2)
-        tk.Label(legend, bg="white", font='Arial 12 bold', text="→ Request", fg=Visualizer.msg_colors['REQUEST']).grid(row=0, column=2, padx=15, pady=5)
-        tk.Label(legend, bg="white", font='Arial 12 bold', text="→ Token", fg=Visualizer.msg_colors['TOKEN']).grid(row=0, column=3, padx=15, pady=5)
-        tk.Label(legend, bg="white", font='Arial 12 bold', text="→ Election", fg=Visualizer.msg_colors['ELECTION']).grid(row=0, column=4, padx=15, pady=5)
-        tk.Label(legend, bg="white", font='Arial 12 bold', text="→ Coordinator", fg=Visualizer.msg_colors['COORDINATOR']).grid(row=0, column=5, padx=15, pady=5)
+        frame2 = tk.Frame(legend, background="green")
+        frame2.grid(row=0, column=2, padx=17, pady=5)
+        tk.Label(frame2, bg="white", font='Arial 12 bold', text="Crashed").pack(padx=2, pady=2)
+        tk.Label(legend, bg="white", font='Arial 12 bold', text="→ Request", fg=Visualizer.msg_colors['REQUEST']).grid(row=0, column=3, padx=15, pady=5)
+        tk.Label(legend, bg="white", font='Arial 12 bold', text="→ Token", fg=Visualizer.msg_colors['TOKEN']).grid(row=0, column=4, padx=15, pady=5)
+        tk.Label(legend, bg="white", font='Arial 12 bold', text="→ Election", fg=Visualizer.msg_colors['ELECTION']).grid(row=0, column=5, padx=15, pady=5)
+        tk.Label(legend, bg="white", font='Arial 12 bold', text="→ Coordinator", fg=Visualizer.msg_colors['COORDINATOR']).grid(row=0, column=6, padx=15, pady=5)
     
 
     def _back(self):

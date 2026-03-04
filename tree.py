@@ -78,27 +78,37 @@ class Tree:
 
         print(f"--- Réparation de l'arbre après crash du Node {crashed_node_id} ---")
 
+        node_promoted = None
+
+        # Détachement du parent
         if crashed_parent is not None:
-            # détache le nœud crashé de son parent
             if crashed in crashed_parent.children:
                 crashed_parent.children.remove(crashed)
-                
-            for child in orphan_children:
-                self.connect_parent_child(crashed_parent.id, child.id)
-                #le fils doit pointer vers son nouveau parent pour le jeton
-                child.holder = crashed_parent.id
-                print(f"Node {child.id} est maintenant rattaché à son grand-parent {crashed_parent.id}")
-        else:
-            # si c'etait la racine, on choisit le premier enfant comme nouvelle racine
-            if len(orphan_children) > 0:
-                new_root = orphan_children[0]
-                new_root.parent = None
-                new_root.holder = new_root.node_id # la racine pointe sur elle-même
-                
-                for child in orphan_children[1:]:
-                    self.connect_parent_child(new_root.node_id, child.node_id)
-                    child.holder = new_root.node_id
-                print(f"Node {new_root.node_id} devient la nouvelle racine")
+
+        # Sélection du noeud fils qui devient père et rattachement (remonté d'un noeud pour raccrocher)
+        if len(orphan_children) > 0:
+            node_promoted = orphan_children.pop(0)
+            node_promoted.parent = crashed_parent
+            
+            if crashed_parent is not None:
+                crashed_parent.children.append(node_promoted)
+                self.edges.append((crashed_parent.node_id,node_promoted.node_id))
+            
+            for new_children in orphan_children:
+                node_promoted.children.append(new_children)
+                new_children.parent = node_promoted
+                self.edges.append((node_promoted.node_id,new_children.node_id))
+
+        # Update neighbors
+        if crashed_parent is not None: crashed_parent.update_neighbors()
+        for node in orphan_children : node.update_neighbors()
+        node_promoted.update_neighbors()
+        
+        # Remove all incident edges with crashed node
+        self.edges = [(i, j) for (i, j) in self.edges if i != crashed_node_id and j != crashed_node_id]
+
+        return node_promoted
+
 
     def toString(self, ids):
         # affiche l etat de certain nodes
