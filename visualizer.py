@@ -13,7 +13,6 @@ graphviz_path = os.path.abspath("Graphviz-14.1.2-win64/bin")
 os.environ["PATH"] += os.pathsep + graphviz_path
 
 class Visualizer:
-    """Tkinter interface for visualizing Global States and Distributed Snapshots of processes and their tasks."""
 
     msg_colors = {'REQUEST':'maroon', 'TOKEN':'gold', 'ELECTION':'blue', 'COORDINATOR':'purple'}
     format = "png"

@@ -5,7 +5,7 @@ from Message import MessageType
 from visualizer import Visualizer
 
 if __name__ == "__main__":
-    visualizer = Visualizer()
+    visualizer = Visualizer(img_folder="default")   # CHOOSE NAME OF FOLDER TO SAVE SNAPSHOTS (Beware of overwrite!)
     sim = Simulator(visualizer)
     tree = Tree(sim)
     sim.tree = tree
